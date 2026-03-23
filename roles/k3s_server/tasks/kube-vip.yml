@@ -16,12 +16,3 @@
     group: root
     mode: "0644"
   when: ansible_hostname == hostvars[groups[group_name_master | default('master')][0]]['ansible_hostname']
-
-- name: Copy kubevip configMap manifest to first master
-  ansible.builtin.template:
-    src: kubevip.yaml.j2
-    dest: "{{ data_dir }}/server/manifests/kube-vip-cloud-controller.yaml"
-    owner: root
-    group: root
-    mode: "0644"
-  when: ansible_hostname == hostvars[groups[group_name_master | default('master')][0]]['ansible_hostname']

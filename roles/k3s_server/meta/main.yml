@@ -85,10 +85,6 @@ argument_specs:
         description: Tag for kube-vip-cloud-provider manifest when enabled
         default: main
 
-      kube_vip_lb_ip_range:
-        description: IP range for kube-vip load balancer
-        default: ~
-
       proxy_env:
         type: dict
         description:

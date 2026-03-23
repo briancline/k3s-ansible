@@ -85,7 +85,3 @@ argument_specs:
         description: Replace the native kube-proxy with Cilium
         type: bool
         default: true
-
-      kube_vip_lb_ip_range:
-        description: IP range for kube-vip load balancer
-        default: ~
