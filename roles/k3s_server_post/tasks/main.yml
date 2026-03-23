@@ -2,7 +2,6 @@
 - name: Deploy cilium
   ansible.builtin.include_tasks: cilium.yml
   tags: cilium
-  when: cilium_iface is defined
 
 - name: Remove tmp directory used for manifests
   ansible.builtin.file:

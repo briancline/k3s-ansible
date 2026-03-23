@@ -1,62 +1,50 @@
 ---
-k3s_version: v1.30.2+k3s2
-# this is the user that has ssh access to these machines
-ansible_user: ansibleuser
+ansible_user: ansibleuser  # user with remote SSH access to each system
+system_timezone: UTC
 systemd_dir: /etc/systemd/system
 
-# Set your timezone
-system_timezone: Your/Timezone
+k3s_version: v1.35.2+k3s1
+cilium_tag: v1.16.0
+kube_vip_tag_version: v0.8.2
+# kube_vip_cloud_provider_tag_version: main
 
-# ensure v4.19.57, v5.1.16, v5.2.0 or more recent kernel
-cilium_iface: "eth0"
-cilium_mode: native # native when nodes on same subnet or using bgp, else set routed
-cilium_tag: v1.16.0 # cilium version tag
-cilium_hubble: true # enable hubble observability relay and ui
+cilium_iface: eth0
+cilium_mode: native  # native when nodes on same subnet or using bgp, else set routed
+cilium_hubble: true  # enable hubble observability relay and ui
 
-# cluster pod cidr pool
+# Cluster pod CIDR pool
 cluster_cidr: 10.52.0.0/16
 
-# enable cilium bgp control plane for lb services and pod cidrs
+# Enable cilium bgp control plane for lb services and pod CIDRs
 cilium_bgp: false
 
-# bgp parameters for cilium cni. only active when cilium_iface is defined and cilium_bgp is true.
-cilium_bgp_my_asn: "64513"
-cilium_bgp_peer_asn: "64512"
+# BGP parameters for cilium CNI. only active when cilium_bgp is true.
+cilium_bgp_my_asn: 64513
+cilium_bgp_peer_asn: 64512
 cilium_bgp_peer_address: 192.168.30.1
-cilium_bgp_lb_cidr: 192.168.31.0/24 # cidr for cilium loadbalancer ipam
+cilium_bgp_lb_cidr: 192.168.31.0/24  # for cilium loadbalancer ipam
 
-# enable kube-vip ARP broadcasts
-kube_vip_arp: true
+kube_vip_arp: true  # enable ARP broadcasts
 
-# enable kube-vip BGP peering
-kube_vip_bgp: false
+kube_vip_bgp: false  # enable BGP advertisements
+kube_vip_bgp_routerid: 127.0.0.1  # BGP router ID
+kube_vip_bgp_as: 64513  # BGP AS
+kube_vip_bgp_peeraddress: 192.168.30.1  # upstream BGP peer's address
+kube_vip_bgp_peeras: 64512  # upstream BGP peer's AS
 
-# bgp parameters for kube-vip
-kube_vip_bgp_routerid: "127.0.0.1"  # Defines the router ID for the BGP server
-kube_vip_bgp_as: "64513"  # Defines the AS for the BGP server
-kube_vip_bgp_peeraddress: "192.168.30.1"  # Defines the address for the BGP peer
-kube_vip_bgp_peeras: "64512"  # Defines the AS for the BGP peer
-
-# apiserver_endpoint is virtual ip-address which will be configured on each master
+# API VIP which will be configured on each master
 apiserver_endpoint: 192.168.30.222
 
-# k3s_token is required  masters can talk together securely
-# this token should be alpha numeric only
-k3s_token: some-SUPER-DEDEUPER-secret-password
-
-# The IP on which the node is reachable in the cluster.
-# Here, a sensible default is provided, you can still override
-# it for each of your hosts, though.
+k3s_token: some-super-secret-string
 k3s_node_ip: "{{ ansible_facts[cilium_iface]['ipv4']['address'] }}"
 
-# Disable the taint manually by setting: k3s_master_taint = false
+# Determines whether masters should run non-system workloads. Disable by explicitly setting false
 k3s_master_taint: "{{ true if groups['node'] | default([]) | length >= 1 else false }}"
 
-# these arguments are recommended for servers as well as agents:
+# Common args for servers and agents:
 extra_args: >-
   --node-ip={{ k3s_node_ip }}
 
-# change these to your liking, the only required are: --disable servicelb, --tls-san {{ apiserver_endpoint }}
 extra_server_args: >-
   {{ extra_args }}
   {{ '--node-taint node-role.kubernetes.io/master=true:NoSchedule' if k3s_master_taint else '' }}
@@ -69,12 +57,6 @@ extra_server_args: >-
 
 extra_agent_args: >-
   {{ extra_args }}
-
-# image tag for kube-vip
-kube_vip_tag_version: v0.8.2
-
-# tag for kube-vip-cloud-provider manifest
-# kube_vip_cloud_provider_tag_version: "main"
 
 # kube-vip ip range for load balancer
 # (uncomment to use kube-vip for services instead of Cilium's LB)
