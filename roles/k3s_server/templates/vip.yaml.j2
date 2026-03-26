@@ -79,6 +79,15 @@ spec:
 {%     endif %}
 {%   endif %}
 {% endif %}
+        # Force kube-vip to use the locally-exposed control plane endpoint. This is
+        # required since Cilium is replacing kube-proxy, but the normal internal routing
+        # to kube-apiserver's IP doesn't work until *after* Cilium starts - after this.
+        # Without forcing to local, leader election can't happen, so kube-vip never
+        # sets up a control plane VIP, and no agents can join the cluster.
+        - name: KUBERNETES_SERVICE_HOST
+          value: "127.0.0.1"
+        - name: KUBERNETES_SERVICE_PORT
+          value: "6443"
         image: ghcr.io/kube-vip/kube-vip:{{ kube_vip_tag_version }}
         imagePullPolicy: Always
         name: kube-vip
