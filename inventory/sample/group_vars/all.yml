@@ -2,33 +2,31 @@
 ansible_user: ansibleuser  # user with remote SSH access to each system
 system_timezone: UTC
 systemd_dir: /etc/systemd/system
+data_dir: /var/lib/rancher/k3s
 
 k3s_version: v1.35.2+k3s1
 cilium_tag: v1.16.0
 kube_vip_tag_version: v0.8.2
 # kube_vip_cloud_provider_tag_version: main
 
-cilium_iface: eth0
-cilium_mode: native  # native when nodes on same subnet or using bgp, else set routed
-cilium_hubble: true  # enable hubble observability relay and ui
-
 cluster_domain: cluster.local
 cluster_cidr: 10.52.0.0/16  # IP pool for pods
 service_cidr: 10.53.0.0/16  # IP pool for services
 
+cilium_iface: "{{ ansible_facts.default_ipv4.interface | default('eth0') }}"
+cilium_mode: native  # native when nodes on same subnet or using bgp, else set routed
+cilium_hubble: true  # enable hubble observability relay and ui
+
 # Enable cilium bgp control plane for lb services and pod CIDRs
 cilium_bgp: false
-
-# BGP parameters for cilium CNI. only active when cilium_bgp is true.
 cilium_bgp_my_asn: 64513
 cilium_bgp_peer_asn: 64512
 cilium_bgp_peer_address: 192.168.30.1
 cilium_bgp_lb_cidr: 192.168.31.0/24  # for cilium loadbalancer ipam
 
 kube_vip_arp: true  # enable ARP broadcasts
-
 kube_vip_bgp: false  # enable BGP advertisements
-kube_vip_bgp_routerid: 127.0.0.1  # BGP router ID
+kube_vip_bgp_routerid: "{{ ansible_facts[cilium_iface]['ipv4']['address'] }}"  # BGP router ID
 kube_vip_bgp_as: 64513  # BGP AS
 kube_vip_bgp_peeraddress: 192.168.30.1  # upstream BGP peer's address
 kube_vip_bgp_peeras: 64512  # upstream BGP peer's AS
