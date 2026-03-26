@@ -14,6 +14,7 @@ cilium_hubble: true  # enable hubble observability relay and ui
 
 cluster_domain: cluster.local
 cluster_cidr: 10.52.0.0/16  # IP pool for pods
+service_cidr: 10.53.0.0/16  # IP pool for services
 
 # Enable cilium bgp control plane for lb services and pod CIDRs
 cilium_bgp: false
@@ -53,6 +54,7 @@ extra_server_args: >-
   --disable-network-policy
   --cluster-domain "{{ cluster_domain }}"
   --cluster-cidr={{ cluster_cidr | default('10.52.0.0/16') }}
+  --service-cidr={{ service_cidr | default('10.53.0.0/16') }}
   --tls-san {{ apiserver_endpoint }}
   --disable servicelb
   --disable traefik
