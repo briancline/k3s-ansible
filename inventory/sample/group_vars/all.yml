@@ -12,8 +12,8 @@ cilium_iface: eth0
 cilium_mode: native  # native when nodes on same subnet or using bgp, else set routed
 cilium_hubble: true  # enable hubble observability relay and ui
 
-# Cluster pod CIDR pool
-cluster_cidr: 10.52.0.0/16
+cluster_domain: cluster.local
+cluster_cidr: 10.52.0.0/16  # IP pool for pods
 
 # Enable cilium bgp control plane for lb services and pod CIDRs
 cilium_bgp: false
@@ -51,6 +51,7 @@ extra_server_args: >-
   {{ '--node-taint node-role.kubernetes.io/master=true:NoSchedule' if k3s_master_taint else '' }}
   --flannel-backend=none
   --disable-network-policy
+  --cluster-domain "{{ cluster_domain }}"
   --cluster-cidr={{ cluster_cidr | default('10.52.0.0/16') }}
   --tls-san {{ apiserver_endpoint }}
   --disable servicelb
