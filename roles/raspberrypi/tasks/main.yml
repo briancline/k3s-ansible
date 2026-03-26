@@ -1,11 +1,11 @@
 ---
-- name: Test for raspberry pi /proc/cpuinfo
+- name: Detect Raspberry Pi from CPU model
   ansible.builtin.command: grep -E "Raspberry Pi|BCM2708|BCM2709|BCM2835|BCM2836" /proc/cpuinfo
   register: grep_cpuinfo_raspberrypi
   failed_when: false
   changed_when: false
 
-- name: Test for raspberry pi /proc/device-tree/model
+- name: Detect Raspberry Pi from device tree
   ansible.builtin.command: grep -E "Raspberry Pi" /proc/device-tree/model
   register: grep_device_tree_model_raspberrypi
   failed_when: false
@@ -44,7 +44,7 @@
   when:
     - detected_distribution | default("") == "Raspbian"
 
-- name: Execute OS related tasks on the Raspberry Pi - {{ action_ }}
+- name: Include Raspberry Pi OS tasks ({{ action_ }})
   ansible.builtin.include_tasks: "{{ item }}"
   with_first_found:
     - "{{ action_ }}/{{ detected_distribution }}-{{ detected_distribution_major_version }}.yml"

@@ -1,7 +1,11 @@
 ---
-- name: Set _kube_vip_bgp_peers fact
+- name: Merge kube-vip BGP peers
   ansible.builtin.set_fact:
-    _kube_vip_bgp_peers: "{{ lookup('community.general.merge_variables', '^kube_vip_bgp_peers__.+$', initial_value=kube_vip_bgp_peers, groups=kube_vip_bgp_peers_groups) }}"  # yamllint disable-line rule:line-length
+    _kube_vip_bgp_peers: >-
+      {{ lookup('community.general.merge_variables',
+                '^kube_vip_bgp_peers__.+$',
+                initial_value=kube_vip_bgp_peers,
+                groups=kube_vip_bgp_peers_groups) }}
 
 - name: Create manifests directory on first master
   ansible.builtin.file:
@@ -12,7 +16,7 @@
     mode: "0644"
   when: ansible_hostname == hostvars[groups[group_name_master | default('master')][0]]['ansible_hostname']
 
-- name: Download vip rbac manifest to first master
+- name: Download kube-vip RBAC manifest to first master
   ansible.builtin.get_url:
     url: https://kube-vip.io/manifests/rbac.yaml
     dest: "{{ data_dir }}/server/manifests/vip-rbac.yaml"
@@ -21,7 +25,7 @@
     mode: "0644"
   when: ansible_hostname == hostvars[groups[group_name_master | default('master')][0]]['ansible_hostname']
 
-- name: Copy vip manifest to first master
+- name: Copy kube-vip manifest to first master
   ansible.builtin.template:
     src: vip.yaml.j2
     dest: "{{ data_dir }}/server/manifests/vip.yaml"

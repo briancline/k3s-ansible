@@ -3,7 +3,7 @@
   when: ansible_hostname == hostvars[groups[group_name_master | default('master')][0]]['ansible_hostname']
   run_once: true
   block:
-    - name: Create tmp directory on first master
+    - name: Create temporary directory on first master
       ansible.builtin.file:
         path: /tmp/k3s
         state: directory
@@ -18,7 +18,7 @@
       changed_when: false
       ignore_errors: true
 
-    - name: Check for Cilium CLI version in command output
+    - name: Parse installed Cilium CLI version
       ansible.builtin.set_fact:
         installed_cli_version: >-
           {{
@@ -101,7 +101,7 @@
             - /tmp/k3s/cilium-linux-{{ cli_arch }}.tar.gz
             - /tmp/k3s/cilium-linux-{{ cli_arch }}.tar.gz.sha256sum
 
-    - name: Wait for connectivity to kube VIP
+    - name: Wait for connectivity to control plane VIP
       ansible.builtin.command: ping -c 1 {{ apiserver_endpoint }}
       register: ping_result
       until: ping_result.rc == 0
@@ -110,12 +110,12 @@
       ignore_errors: true
       changed_when: false
 
-    - name: Fail if kube VIP not reachable
+    - name: Fail if control plane VIP not reachable
       ansible.builtin.fail:
         msg: API endpoint {{ apiserver_endpoint }} is not reachable
       when: ping_result.rc != 0
 
-    - name: Test for existing Cilium install
+    - name: Check for existing Cilium install
       ansible.builtin.command: |
         {{ k3s_kubectl_binary | default('k3s kubectl') }} -n kube-system get daemonsets cilium
       register: cilium_installed
@@ -123,7 +123,7 @@
       changed_when: false
       ignore_errors: true
 
-    - name: Check existing Cilium install
+    - name: Check existing Cilium version and determine if update needed
       when: cilium_installed.rc == 0
       block:
         - name: Check Cilium version
@@ -149,14 +149,14 @@
             cilium_needs_update: >-
               {{ 'v' + installed_cilium_version != cilium_tag }}
 
-        - name: Log result
+        - name: Log Cilium version status
           ansible.builtin.debug:
             msg: >
               Installed Cilium version: {{ installed_cilium_version }},
               Target Cilium version: {{ cilium_tag }},
               Update needed: {{ cilium_needs_update }}
 
-    - name: Install Cilium
+    - name: Install or upgrade Cilium
       ansible.builtin.command: >-
         {% if cilium_installed.rc != 0 %}
         cilium install
@@ -222,9 +222,13 @@
     - name: Configure Cilium BGP
       when: cilium_bgp
       block:
-        - name: Set _cilium_bgp_neighbors fact
+        - name: Merge Cilium BGP neighbors
           ansible.builtin.set_fact:
-            _cilium_bgp_neighbors: "{{ lookup('community.general.merge_variables', '^cilium_bgp_neighbors__.+$', initial_value=cilium_bgp_neighbors, groups=cilium_bgp_neighbors_groups) }}"  # yamllint disable-line rule:line-length
+            _cilium_bgp_neighbors: >-
+              {{ lookup('community.general.merge_variables',
+                        '^cilium_bgp_neighbors__.+$',
+                        initial_value=cilium_bgp_neighbors,
+                        groups=cilium_bgp_neighbors_groups) }}
 
         - name: Copy BGP manifests to first master
           ansible.builtin.template:
@@ -242,12 +246,12 @@
           failed_when: "'is invalid' in apply_cr.stderr"
           ignore_errors: true
 
-        - name: Print error message if BGP manifests application fails
+        - name: Log BGP manifest errors
           ansible.builtin.debug:
             msg: "{{ apply_cr.stderr }}"
           when: "'is invalid' in apply_cr.stderr"
 
-        - name: Test for BGP config resources
+        - name: Verify BGP config resources
           ansible.builtin.command: "{{ item }}"
           loop:
             - "{{ k3s_kubectl_binary | default('k3s kubectl') }} get CiliumBGPPeeringPolicy.cilium.io"

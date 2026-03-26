@@ -1,5 +1,5 @@
 ---
-- name: Disable services
+- name: Stop and disable k3s services
   ansible.builtin.systemd:
     name: "{{ item }}"
     state: stopped
@@ -10,7 +10,7 @@
     - k3s-node
     - k3s-init
 
-- name: RUN pkill -9 -f "k3s/data/[^/]+/bin/containerd-shim-runc"
+- name: Kill containerd-shim-runc processes
   register: pkill_containerd_shim_runc
   ansible.builtin.command: pkill -9 -f "k3s/data/[^/]+/bin/containerd-shim-runc"
   changed_when: pkill_containerd_shim_runc.rc == 0
@@ -30,7 +30,7 @@
   loop_control:
     loop_var: mounted_fs
 
-- name: Remove service files, binaries and data
+- name: Remove k3s files, binaries, and data
   ansible.builtin.file:
     name: "{{ item }}"
     state: absent
@@ -49,7 +49,7 @@
     - /etc/cni/net.d
     - "{{ data_dir }}"
 
-- name: Remove K3s http_proxy files
+- name: Remove k3s HTTP proxy files
   ansible.builtin.file:
     name: "{{ item }}"
     state: absent
@@ -60,11 +60,11 @@
     - "{{ systemd_dir }}/k3s-node.service.d"
   when: proxy_env is defined
 
-- name: Reload daemon_reload
+- name: Reload systemd daemon
   ansible.builtin.systemd:
     daemon_reload: true
 
-- name: Remove tmp directory used for manifests
+- name: Remove temporary manifests directory
   ansible.builtin.file:
     path: /tmp/k3s
     state: absent

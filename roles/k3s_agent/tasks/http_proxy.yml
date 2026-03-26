@@ -8,7 +8,7 @@
     mode: "0755"
   when: proxy_env is defined
 
-- name: Copy K3s http_proxy conf file
+- name: Copy k3s-node HTTP proxy config
   ansible.builtin.template:
     src: http_proxy.conf.j2
     dest: "{{ systemd_dir }}/k3s-node.service.d/http_proxy.conf"

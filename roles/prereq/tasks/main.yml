@@ -1,10 +1,10 @@
 ---
-- name: Set same timezone on every Server
+- name: Set system timezone
   community.general.timezone:
     name: "{{ system_timezone }}"
   when: (system_timezone is defined) and (system_timezone != "Your/Timezone")
 
-- name: Set SELinux to disabled state
+- name: Disable SELinux
   ansible.posix.selinux:
     state: disabled
   when: ansible_os_family == "RedHat"
@@ -40,13 +40,13 @@
     mode: u=rw,g=,o=
   when: ansible_os_family == "RedHat"
 
-- name: Load br_netfilter
+- name: Load br_netfilter module
   community.general.modprobe:
     name: br_netfilter
     state: present
   when: ansible_os_family == "RedHat"
 
-- name: Set bridge-nf-call-iptables (just to be sure)
+- name: Enable bridge-nf-call-iptables
   ansible.posix.sysctl:
     name: "{{ item }}"
     value: "1"
