@@ -147,27 +147,3 @@
     dest: /usr/local/bin/crictl
     state: link
   when: k3s_create_crictl_symlink | default(true) | bool
-
-- name: List manifests directory contents
-  ansible.builtin.find:
-    paths: "{{ data_dir }}/server/manifests"
-    file_type: file
-  register: k3s_server_manifests
-
-- name: List manifests subdirectories
-  ansible.builtin.find:
-    paths: "{{ data_dir }}/server/manifests"
-    file_type: directory
-  register: k3s_server_manifests_directories
-
-# These bootstrap manifests must be removed, otherwise k3s will keep
-# re-applying them each time it starts.
-- name: Remove bootstrap-only manifests
-  ansible.builtin.file:
-    path: "{{ item.path }}"
-    state: absent
-  with_items:
-    - "{{ k3s_server_manifests.files }}"
-    - "{{ k3s_server_manifests_directories.files }}"
-  loop_control:
-    label: "{{ item.path }}"
