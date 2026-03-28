@@ -6,7 +6,7 @@ metadata:
 spec:
   virtualRouters:
     - localASN: {{ cilium_bgp_my_asn }}
-      exportPodCIDR: {{ cilium_exportPodCIDR | default('true') }}
+      exportPodCIDR: {{ cilium_exportPodCIDR }}
       neighbors:
 {% if _cilium_bgp_neighbors | length > 0 %}
 {%   for item in _cilium_bgp_neighbors %}

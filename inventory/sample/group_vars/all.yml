@@ -1,7 +1,6 @@
 ---
 ansible_user: ansibleuser  # user with remote SSH access to each system
 system_timezone: UTC
-systemd_dir: /etc/systemd/system
 data_dir: /var/lib/rancher/k3s
 
 k3s_version: v1.35.2+k3s1
@@ -52,8 +51,8 @@ extra_server_args: >-
   --disable-network-policy
   --disable-kube-proxy
   --cluster-domain "{{ cluster_domain }}"
-  --cluster-cidr "{{ cluster_cidr | default('10.52.0.0/16') }}"
-  --service-cidr "{{ service_cidr | default('10.53.0.0/16') }}"
+  --cluster-cidr "{{ cluster_cidr }}"
+  --service-cidr "{{ service_cidr }}"
   --tls-san "{{ apiserver_endpoint }}"
   --disable servicelb
   --disable traefik

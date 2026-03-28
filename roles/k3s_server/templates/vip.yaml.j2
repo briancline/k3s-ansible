@@ -24,9 +24,9 @@ spec:
         - manager
         env:
         - name: vip_arp
-          value: "{{ 'true' if kube_vip_arp | default(true) | bool else 'false' }}"
+          value: "{{ 'true' if kube_vip_arp | bool else 'false' }}"
         - name: bgp_enable
-          value: "{{ 'true' if kube_vip_bgp | default(false) | bool else 'false' }}"
+          value: "{{ 'true' if kube_vip_bgp | bool else 'false' }}"
         - name: address
           value: {{ apiserver_endpoint }}
         - name: port
@@ -53,7 +53,7 @@ spec:
           value: "10"
         - name: vip_retryperiod
           value: "2"
-{% if kube_vip_bgp | default(false) | bool %}
+{% if kube_vip_bgp | bool %}
 {%   if kube_vip_bgp_routerid is defined %}
         - name: bgp_routerid
           value: "{{ kube_vip_bgp_routerid }}"

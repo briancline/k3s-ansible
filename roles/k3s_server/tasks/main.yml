@@ -36,15 +36,15 @@
     - name: Verify all masters joined (check k3s-init.service if this fails)
       ansible.builtin.command:
         cmd: >-
-          {{ k3s_kubectl_binary | default('k3s kubectl') }}
+          {{ k3s_kubectl_binary }}
           get nodes
           -l 'node-role.kubernetes.io/control-plane'
           -o=jsonpath='{.items[*].metadata.name}'
       register: nodes
       until: >-
         nodes.rc == 0 and
-        (nodes.stdout.split() | length) == (groups[group_name_master | default('master')] | length)
-      retries: "{{ retry_count | default(20) }}"
+        (nodes.stdout.split() | length) == (groups[group_name_master] | length)
+      retries: "{{ retry_count }}"
       delay: 10
       changed_when: false
   always:
@@ -122,7 +122,7 @@
 
 - name: Configure kubectl cluster to {{ endpoint_url }}
   ansible.builtin.command: >-
-    {{ k3s_kubectl_binary | default('k3s kubectl') }} config set-cluster default
+    {{ k3s_kubectl_binary }} config set-cluster default
       --server={{ endpoint_url }}
       --kubeconfig {{ ansible_user_dir }}/.kube/config
   changed_when: true
@@ -139,11 +139,11 @@
     src: /usr/local/bin/k3s
     dest: /usr/local/bin/kubectl
     state: link
-  when: k3s_create_kubectl_symlink | default(true) | bool
+  when: k3s_create_kubectl_symlink | bool
 
 - name: Create crictl symlink
   ansible.builtin.file:
     src: /usr/local/bin/k3s
     dest: /usr/local/bin/crictl
     state: link
-  when: k3s_create_crictl_symlink | default(true) | bool
+  when: k3s_create_crictl_symlink | bool

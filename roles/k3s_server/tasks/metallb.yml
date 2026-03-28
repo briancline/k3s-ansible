@@ -6,4 +6,4 @@
     owner: root
     group: root
     mode: "0644"
-  when: ansible_hostname == hostvars[groups[group_name_master | default('master')][0]]['ansible_hostname']
+  when: ansible_hostname == hostvars[groups[group_name_master][0]]['ansible_hostname']
