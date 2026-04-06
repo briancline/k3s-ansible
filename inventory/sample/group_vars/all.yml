@@ -44,6 +44,7 @@ k3s_master_taint: "{{ true if groups['node'] | default([]) | length >= 1 else fa
 extra_args: >-
   --data-dir "{{ data_dir }}"
   --node-ip "{{ k3s_node_ip }}"
+  --node-name "{{ ansible_fqdn }}"
 
 extra_server_args: >-
   {{ extra_args }}
