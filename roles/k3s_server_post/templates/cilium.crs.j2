@@ -38,12 +38,12 @@ metadata:
 spec:
   ebgpMultihop: {{ cilium_bgp_ebgp_multihop }}
   gracefulRestart:
-    enabled: true
-    restartTimeSeconds: 15
+    enabled: {{ cilium_bgp_graceful_restart | bool | lower }}
+    restartTimeSeconds: {{ cilium_bgp_graceful_restart_secs }}
   timers:
-    connectRetryTimeSeconds: 120
-    holdTimeSeconds: 90
-    keepAliveTimeSeconds: 30
+    connectRetryTimeSeconds: {{ cilium_bgp_timer_connect_retry_secs }}
+    holdTimeSeconds: {{ cilium_bgp_timer_hold_secs }}
+    keepAliveTimeSeconds: {{ cilium_bgp_timer_keepalive_secs }}
   families:
     - afi: ipv4
       safi: unicast
