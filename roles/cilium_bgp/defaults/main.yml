@@ -1,29 +1,20 @@
 ---
 k3s_kubectl_binary: k3s kubectl
 
-bpf_lb_algorithm: maglev
-bpf_lb_mode: hybrid
-
-gateway_api_version: v1.1.0
+group_name_master: master
 
 cilium_bgp: false
 cilium_export_pod_cidr: true
+
 cilium_bgp_my_asn: 64513
 cilium_bgp_peer_asn: 64512
 cilium_bgp_neighbors: []
 cilium_bgp_neighbors_groups: ['k3s_all']
 cilium_bgp_lb_cidr: 192.168.31.0/24
+
 cilium_bgp_ebgp_multihop: 1
 cilium_bgp_graceful_restart: false
 cilium_bgp_graceful_restart_secs: 120
 cilium_bgp_timer_connect_retry_secs: 120
 cilium_bgp_timer_hold_secs: 90
 cilium_bgp_timer_keepalive_secs: 30
-cilium_hubble: true
-cilium_mode: native
-cilium_gateway_api: true
-
-cluster_cidr: 10.52.0.0/16
-enable_bpf_masquerade: true
-kube_proxy_replacement: true
-group_name_master: master

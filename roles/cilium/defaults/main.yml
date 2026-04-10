@@ -1,0 +1,21 @@
+---
+k3s_kubectl_binary: k3s kubectl
+
+group_name_master: master
+
+cilium_mode: native
+cilium_hubble: true
+cilium_gateway_api: true
+gateway_api_version: v1.1.0
+
+enable_bpf_masquerade: true
+kube_proxy_replacement: true
+bpf_lb_algorithm: maglev
+bpf_lb_mode: hybrid
+
+cluster_cidr: 10.52.0.0/16
+
+# These are cilium_bgp role settings but need to remain here since
+# the install process does need them too.
+cilium_bgp: false
+cilium_export_pod_cidr: true

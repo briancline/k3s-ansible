@@ -1,9 +1,0 @@
----
-- name: Deploy Cilium
-  ansible.builtin.include_tasks: cilium.yml
-  tags: cilium
-
-- name: Remove temporary manifests directory
-  ansible.builtin.file:
-    path: /tmp/k3s
-    state: absent

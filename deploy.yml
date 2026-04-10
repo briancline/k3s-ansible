@@ -39,12 +39,15 @@
     - role: k3s_agent
       become: true
 
-- name: Configure k3s cluster
+- name: Deploy Cilium CNI
   hosts: master
   environment: "{{ proxy_env | default({}) }}"
   roles:
-    - role: k3s_server_post
+    - role: cilium
       become: true
+    - role: cilium_bgp
+      become: true
+      when: cilium_bgp
 
 - name: Storing kubeconfig in the playbook directory
   hosts: master

@@ -7,16 +7,6 @@ argument_specs:
         description: Virtual ip-address configured on each master
         required: true
 
-      cilium_bgp:
-        description:
-          - Enable cilium BGP control plane for LB services and pod cidrs.
-        type: bool
-        default: ~
-
-      cilium_iface:
-        description: The network interface used for when Cilium is enabled
-        default: ~
-
       extra_server_args:
         description: Extra arguments for server nodes
         default: ""
