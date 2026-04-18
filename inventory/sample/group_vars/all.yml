@@ -4,7 +4,7 @@ system_timezone: UTC
 data_dir: /var/lib/rancher/k3s
 
 k3s_version: v1.35.2+k3s1
-gateway_api_version: v1.1.0
+gateway_api_version: v1.2.1
 cilium_tag: v1.19.2
 kube_vip_tag_version: v0.8.2
 # kube_vip_cloud_provider_tag_version: main

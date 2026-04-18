@@ -65,7 +65,7 @@ argument_specs:
 
       gateway_api_version:
         description: Gateway API CRD version from kubernetes-sigs/gateway-api (must match Cilium version compatibility)
-        default: v1.1.0
+        default: v1.2.1
 
       group_name_master:
         description: Name of the master group

@@ -6,7 +6,7 @@ group_name_master: master
 cilium_mode: native
 cilium_hubble: true
 cilium_gateway_api: true
-gateway_api_version: v1.1.0
+gateway_api_version: v1.2.1
 
 enable_bpf_masquerade: true
 kube_proxy_replacement: true
