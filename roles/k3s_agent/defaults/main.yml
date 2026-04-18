@@ -1,4 +1,13 @@
 ---
-extra_agent_args: ""
+k3s_agent_config: {}
+
+k3s_agent_config_base:
+  data-dir: "{{ data_dir }}"
+  node-ip: "{{ k3s_node_ip }}"
+  node-name: "{{ ansible_fqdn }}"
+  server: "https://{{ apiserver_endpoint }}:6443"
+  token: "{{ k3s_token }}"
+
 group_name_master: master
+
 systemd_dir: /etc/systemd/system

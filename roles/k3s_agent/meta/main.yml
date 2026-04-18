@@ -7,15 +7,20 @@ argument_specs:
         description: Virtual ip-address configured on each master
         required: true
 
-      extra_agent_args:
-        description: Extra arguments for agents nodes
+      k3s_token:
+        description: Shared secret used to join nodes to the cluster
+        required: true
+
+      # TODO: Add argument specs for data_dir, k3s_node_ip
+
+      k3s_agent_config:
+        description: Additional k3s agent config merged into /etc/rancher/k3s/config.yaml
+        type: dict
+        default: {}
 
       group_name_master:
         description: Name of the master group
         default: master
-
-      k3s_token:
-        description: Token used to communicate between masters
 
       proxy_env:
         type: dict

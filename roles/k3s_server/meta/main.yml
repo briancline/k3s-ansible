@@ -7,9 +7,17 @@ argument_specs:
         description: Virtual ip-address configured on each master
         required: true
 
-      extra_server_args:
-        description: Extra arguments for server nodes
-        default: ""
+      k3s_token:
+        description: Shared secret used to join nodes to the cluster
+        required: true
+
+      # TODO: Add argument specs for data_dir, k3s_node_ip, cluster_domain,
+      # cluster_cidr, service_cidr, k3s_master_taint
+
+      k3s_server_config:
+        description: Additional k3s server config merged into /etc/rancher/k3s/config.yaml
+        type: dict
+        default: {}
 
       group_name_master:
         description: Name of the master group
@@ -46,9 +54,6 @@ argument_specs:
         description: Amount of retries when verifying that nodes joined
         type: int
         default: 20
-
-      server_init_args:
-        description: Arguments for server nodes
 
       systemd_dir:
         description: Path to systemd services

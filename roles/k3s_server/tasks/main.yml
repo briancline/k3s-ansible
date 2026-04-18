@@ -1,106 +1,105 @@
 ---
-- name: Stop k3s-init
-  ansible.builtin.systemd:
-    name: k3s-init
-    state: stopped
-  failed_when: false
+- name: Create k3s config directory
+  ansible.builtin.file:
+    path: /etc/rancher/k3s
+    state: directory
+    mode: "0755"
 
-# k3s-init won't work if the port is already in use
-- name: Stop k3s
-  ansible.builtin.systemd:
-    name: k3s
-    state: stopped
-  failed_when: false
+- name: Add cluster-init for first server
+  when:
+    - (groups[group_name_master] | length) > 1
+    - ansible_hostname == hostvars[groups[group_name_master][0]]['ansible_hostname']
+  ansible.builtin.set_fact:
+    k3s_server_config_base: "{{ k3s_server_config_base | combine(_extra) }}"
+  vars:
+    _extra:
+      cluster-init: true
 
-- name: Reset failed state of k3s-init  # noqa command-instead-of-module
-  # The systemd module does not support "reset-failed", so we need to resort to command.
-  ansible.builtin.command: systemctl reset-failed k3s-init
-  failed_when: false
-  changed_when: false
+# TODO: don't hardcode port 6443
+- name: Add server URL for joining servers
+  when:
+    - (groups[group_name_master] | length) > 1
+    - ansible_hostname != hostvars[groups[group_name_master][0]]['ansible_hostname']
+  ansible.builtin.set_fact:
+    k3s_server_config_base: "{{ k3s_server_config_base | combine(_extra) }}"
+  vars:
+    _extra:
+      server: "https://{{ apiserver_endpoint }}:6443"
+
+- name: Add node taint for control plane
+  when: k3s_master_taint | bool
+  ansible.builtin.set_fact:
+    k3s_server_config_base: "{{ k3s_server_config_base | combine(_extra) }}"
+  vars:
+    _extra:
+      node-taint:
+        - "node-role.kubernetes.io/control-plane:NoSchedule"
+
+- name: Merge server config overrides
+  when: k3s_server_config is defined
+  ansible.builtin.set_fact:
+    k3s_server_config_base: >-
+      {{ k3s_server_config_base | combine(k3s_server_config, recursive=true) }}
+
+- name: Write config.yaml
+  ansible.builtin.copy:
+    content: "{{ k3s_server_config_base | to_nice_yaml }}"
+    dest: /etc/rancher/k3s/config.yaml
+    mode: "0640"
+  register: _k3s_config_result
 
 - name: Deploy k3s HTTP proxy config
   ansible.builtin.include_tasks: http_proxy.yml
   when: proxy_env is defined
 
-- name: Initialize cluster via transient k3s-init service
-  ansible.builtin.command:
-    cmd: systemd-run -p RestartSec=2 -p Restart=on-failure --unit=k3s-init k3s server {{ server_init_args }}
-    creates: "{{ systemd_dir }}/k3s-init.service"
-
-- name: Verify all masters joined the cluster
-  when: not ansible_check_mode
-  block:
-    - name: Verify all masters joined (check k3s-init.service if this fails)
-      ansible.builtin.command:
-        cmd: >-
-          {{ k3s_kubectl_binary }}
-          get nodes
-          -l 'node-role.kubernetes.io/control-plane'
-          -o=jsonpath='{.items[*].metadata.name}'
-      register: nodes
-      until: >-
-        nodes.rc == 0 and
-        (nodes.stdout.split() | length) == (groups[group_name_master] | length)
-      retries: "{{ retry_count }}"
-      delay: 10
-      changed_when: false
-  always:
-    - name: Save logs of k3s-init.service
-      ansible.builtin.include_tasks: fetch_k3s_init_logs.yml
-      when: log_destination
-      vars:
-        log_destination: >-
-          {{ lookup('ansible.builtin.env', 'ANSIBLE_K3S_LOG_DIR', default=False) }}
-
-    - name: Stop k3s-init service
-      ansible.builtin.systemd:
-        name: k3s-init
-        state: stopped
-      failed_when: false
-
 - name: Install k3s service unit
-  register: k3s_service
   ansible.builtin.template:
     src: k3s.service.j2
     dest: "{{ systemd_dir }}/k3s.service"
     owner: root
     group: root
     mode: "0644"
+  register: _k3s_service_unit
 
-- name: Enable and restart k3s service
+- name: Enable and start k3s
   ansible.builtin.systemd:
     name: k3s
     daemon_reload: true
-    state: restarted
+    state: "{{ 'restarted' if (_k3s_config_result.changed or _k3s_service_unit.changed) else 'started' }}"
     enabled: true
 
-- name: Wait for node-token
+- name: Wait for first server API readiness
+  when: ansible_hostname == hostvars[groups[group_name_master][0]]['ansible_hostname']
   ansible.builtin.wait_for:
-    path: "{{ data_dir }}/server/node-token"
+    host: "{{ apiserver_endpoint }}"
+    port: 6443
+    timeout: 120
 
-- name: Get node-token parent directory permissions
-  ansible.builtin.stat:
-    path: "{{ data_dir }}/server"
-  register: p
+# TODO: need a better means of verifying it's ready
+- name: Pause to allow first server startup
+  when:
+    - (groups[group_name_master] | length) > 1
+    - ansible_hostname == hostvars[groups[group_name_master][0]]['ansible_hostname']
+  ansible.builtin.pause:
+    seconds: 10
 
-- name: Widen node-token parent directory permissions
-  ansible.builtin.file:
-    path: "{{ data_dir }}/server"
-    mode: g+rx,o+rx
-
-- name: Read node-token from master
-  ansible.builtin.slurp:
-    src: "{{ data_dir }}/server/node-token"
-  register: node_token
-
-- name: Store master node-token
-  ansible.builtin.set_fact:
-    token: "{{ node_token.content | b64decode | regex_replace('\n', '') }}"
-
-- name: Restore node-token parent directory permissions
-  ansible.builtin.file:
-    path: "{{ data_dir }}/server"
-    mode: "{{ p.stat.mode }}"
+- name: Verify all masters joined the cluster
+  when:
+    - not ansible_check_mode
+    - (groups[group_name_master] | length) > 1
+  ansible.builtin.command:
+    cmd: >-
+      {{ k3s_kubectl_binary }}
+      get nodes
+      -l 'node-role.kubernetes.io/control-plane'
+      -o=jsonpath='{.items[*].metadata.name}'
+  register: nodes
+  until: >-
+    nodes.rc == 0 and
+    (nodes.stdout.split() | length) == (groups[group_name_master] | length)
+  retries: "{{ retry_count }}"
+  delay: 10
+  changed_when: false
 
 - name: Create .kube directory
   ansible.builtin.file:
@@ -126,9 +125,6 @@
   vars:
     endpoint_url: >-
       https://{{ apiserver_endpoint | ansible.utils.ipwrap }}:6443
-# Deactivated linter rules:
-#   - jinja[invalid]: As of version 6.6.0, ansible-lint complains that the input to ipwrap
-#                     would be undefined. This will not be the case during playbook execution.
 # noqa jinja[invalid]
 
 - name: Create kubectl symlink

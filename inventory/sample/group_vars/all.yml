@@ -40,29 +40,20 @@ k3s_node_ip: "{{ ansible_facts[cilium_iface]['ipv4']['address'] }}"
 # Determines whether masters should run non-system workloads. Disable by explicitly setting false
 k3s_master_taint: "{{ true if groups['node'] | default([]) | length >= 1 else false }}"
 
-# Common args for servers and agents:
-extra_args: >-
-  --data-dir "{{ data_dir }}"
-  --node-ip "{{ k3s_node_ip }}"
-  --node-name "{{ ansible_fqdn }}"
+# Additional k3s server/master config merged into k3s's config.yaml. At runtime, the k3s_server role
+# automatically sets: data-dir, node-ip, node-name, cluster-domain, cluster-cidr, service-cidr,
+# tls-san, token, cluster-init.
+k3s_server_config:
+  flannel-backend: none
+  disable-network-policy: true
+  disable-kube-proxy: true
+  disable:
+    - servicelb
+    - traefik
 
-extra_server_args: >-
-  {{ extra_args }}
-  --flannel-backend "none"
-  --disable-network-policy
-  --disable-kube-proxy
-  --cluster-domain "{{ cluster_domain }}"
-  --cluster-cidr "{{ cluster_cidr }}"
-  --service-cidr "{{ service_cidr }}"
-  --tls-san "{{ apiserver_endpoint }}"
-  --disable servicelb
-  --disable traefik
-  {% if k3s_master_taint %}
-  --node-taint "node-role.kubernetes.io/control-plane:NoSchedule"
-  {% endif %}
-
-extra_agent_args: >-
-  {{ extra_args }}
+# Additional k3s agent/worker config merged into k3s's config.yaml. At runtime, the k3s_agent role
+# automatically sets: data-dir, node-ip, node-name, server, token
+# k3s_agent_config: {}
 
 
 # Only enable this if you have set up your own container registry to act as a mirror / pull-through cache
