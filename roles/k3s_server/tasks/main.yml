@@ -64,24 +64,20 @@
 - name: Enable and start k3s
   ansible.builtin.systemd:
     name: k3s
-    daemon_reload: true
     state: "{{ 'restarted' if (_k3s_config_result.changed or _k3s_service_unit.changed) else 'started' }}"
     enabled: true
+    daemon_reload: true
+  # The initial start may fail on the other servers (second & third and so on) until the API server is available,
+  # but the Restart directive in the unit will auto-retry. Since we verify each node successfully joins the
+  # cluster in the next few tasks, we never let this task show the initial start failure as it's misleading
+  # and can't accurately reflect successful retries after an initial failure.
+  failed_when: false
 
-- name: Wait for first server API readiness
-  when: ansible_hostname == hostvars[groups[group_name_master][0]]['ansible_hostname']
+- name: Wait for first node API readiness from all nodes
   ansible.builtin.wait_for:
     host: "{{ apiserver_endpoint }}"
     port: 6443
     timeout: 120
-
-# TODO: need a better means of verifying it's ready
-- name: Pause to allow first server startup
-  when:
-    - (groups[group_name_master] | length) > 1
-    - ansible_hostname == hostvars[groups[group_name_master][0]]['ansible_hostname']
-  ansible.builtin.pause:
-    seconds: 10
 
 - name: Verify all masters joined the cluster
   when:
@@ -100,6 +96,11 @@
   retries: "{{ retry_count }}"
   delay: 10
   changed_when: false
+
+- name: Wait for kubeconfig to be written
+  ansible.builtin.wait_for:
+    path: /etc/rancher/k3s/k3s.yaml
+    timeout: 30
 
 - name: Create .kube directory
   ansible.builtin.file:
