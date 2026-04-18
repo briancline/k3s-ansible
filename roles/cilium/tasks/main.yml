@@ -105,8 +105,8 @@
       ansible.builtin.command:
         cmd: >-
           {{ k3s_kubectl_binary }}
-          apply
-          -f https://github.com/kubernetes-sigs/gateway-api/releases/download/{{ gateway_api_version }}/experimental-install.yaml
+          apply -f
+          https://github.com/kubernetes-sigs/gateway-api/releases/download/{{ gateway_api_version }}/experimental-install.yaml
       register: gateway_api_crds
       when: cilium_gateway_api
       changed_when: ("configured" in gateway_api_crds.stdout or "created" in gateway_api_crds.stdout)
