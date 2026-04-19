@@ -101,15 +101,27 @@
             - /tmp/k3s/cilium-linux-{{ cli_arch }}.tar.gz
             - /tmp/k3s/cilium-linux-{{ cli_arch }}.tar.gz.sha256sum
 
+    - name: Check installed Gateway API CRD version
+      ansible.builtin.command:
+        cmd: >-
+          {{ k3s_kubectl_binary }} get crd gatewayclasses.gateway.networking.k8s.io
+          -o jsonpath='{.metadata.annotations.gateway\.networking\.k8s\.io/bundle-version}'
+      register: _gateway_api_installed_version
+      failed_when: false
+      changed_when: false
+      when: cilium_gateway_api
+
     - name: Install Gateway API CRDs (experimental)
       ansible.builtin.command:
         cmd: >-
           {{ k3s_kubectl_binary }}
-          apply -f
+          apply --server-side -f
           https://github.com/kubernetes-sigs/gateway-api/releases/download/{{ gateway_api_version }}/experimental-install.yaml
       register: gateway_api_crds
-      when: cilium_gateway_api
-      changed_when: ("configured" in gateway_api_crds.stdout or "created" in gateway_api_crds.stdout)
+      when:
+        - cilium_gateway_api
+        - _gateway_api_installed_version.rc != 0 or _gateway_api_installed_version.stdout != gateway_api_version
+      changed_when: true
 
     - name: Wait for connectivity to control plane VIP
       ansible.builtin.command: ping -c 1 {{ apiserver_endpoint }}
@@ -201,6 +213,20 @@
       register: cilium_install_result
       changed_when: cilium_install_result.rc == 0
       when: cilium_installed.rc != 0 or cilium_needs_update
+
+    # For an existing cluster, if we update the gateway CRDs version, we need to trigger
+    # a Cilium operator restart. This does not trigger on new installs nor on successive
+    # runs against an established cluster (unless the gateway version changes).
+    - name: Restart cilium-operator after Gateway CRD update
+      ansible.builtin.command:
+        cmd: >-
+          {{ k3s_kubectl_binary }}
+          rollout restart -n kube-system deployment/cilium-operator
+      when:
+        - cilium_gateway_api
+        - gateway_api_crds.changed
+        - not (cilium_install_result.changed | default(false))
+      changed_when: true
 
     - name: Wait for Cilium resources
       ansible.builtin.command: >-
